@@ -1,0 +1,13 @@
+#Ignore environment files
+.env
+
+#Ignore dependencies
+vendor/
+
+#Ignore logs
+*.log
+
+#Ignore OS/editor files
+.DS_Store
+.idea/
+.vscode/
