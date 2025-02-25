@@ -199,20 +199,19 @@ class ExpenseController {
 
     private function validateFundBalance(int $fundId, float $amount, int $userId): void {
         $fund = $this->db->fetchOne(
-            "SELECT f.amount, COALESCE(SUM(e.amount), 0) AS spent
+            "SELECT 
+                f.amount - COALESCE(SUM(e.amount), 0) AS remaining
             FROM funds f
             LEFT JOIN expenses e ON e.fund_id = f.id
             WHERE f.id = ? AND f.user_id = ?
             GROUP BY f.id",
             [$fundId, $userId]
         );
-        if (!$fund) {
-            throw new InvalidArgumentException("Fund source not found");
-        }
-        $remaining = (float)$fund['amount'] - (float)$fund['spent'];
-        if ($remaining < $amount) {
+    
+        if (!$fund || (float)$fund['remaining'] < $amount) {
             throw new InvalidArgumentException(
-                "Insufficient funds. Available: TZS " . number_format($remaining, 2)
+                "Insufficient funds. Available: TZS " . 
+                ($fund ? number_format($fund['remaining'], 2) : '0.00')
             );
         }
     }
@@ -303,13 +302,95 @@ class ExpenseController {
     }
 
     private function updateExpense(array $data): void {
-        // Placeholder for update functionality
-        throw new Exception("Update functionality not implemented");
+        $this->db->beginTransaction();
+        try {
+            $userId = $this->getAuthenticatedUserId();
+            $validatedData = $this->validateExpenseData($data);
+            $originalAmount = (float)$data['original_amount'];
+            $newAmount = $validatedData['amount'];
+            $amountDifference = $newAmount - $originalAmount;
+    
+            // 1. Handle original fund balance restoration
+            if (!empty($data['original_fund_id'])) {
+                $this->db->execute(
+                    "UPDATE funds 
+                    SET amount = amount + ? 
+                    WHERE id = ? AND user_id = ?",
+                    [$originalAmount, $data['original_fund_id'], $userId]
+                );
+            }
+    
+            // 2. Handle new fund deduction/update
+            if ($validatedData['fund_id'] !== null) {
+                // Check if changing funds
+                if ($data['original_fund_id'] != $validatedData['fund_id']) {
+                    $this->validateFundBalance($validatedData['fund_id'], $newAmount, $userId);
+                }
+    
+                // Update new fund balance
+                $this->db->execute(
+                    "UPDATE funds 
+                    SET amount = amount - ? 
+                    WHERE id = ? AND user_id = ?",
+                    [$newAmount, $validatedData['fund_id'], $userId]
+                );
+            }
+    
+            // 3. Update the expense record
+            $this->db->execute(
+                "UPDATE expenses SET
+                    date = :date,
+                    category = :category,
+                    amount = :amount,
+                    description = :description,
+                    fund_id = :fund_id
+                WHERE id = :id AND user_id = :user_id",
+                [
+                    'date' => $validatedData['date'],
+                    'category' => $validatedData['category'],
+                    'amount' => $newAmount,
+                    'description' => $validatedData['description'],
+                    'fund_id' => $validatedData['fund_id'],
+                    'id' => $data['expense_id'],
+                    'user_id' => $userId
+                ]
+            );
+    
+            $this->db->commit();
+            $this->redirectWithSuccess('/expenses/view', 'Expense updated successfully!');
+    
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            $this->handleUserError($e->getMessage(), $data);
+        }
     }
-
+    
     public function fetchAll(string $query, array $params = []): array {
     $stmt = $this->pdo->prepare($query);
     $stmt->execute($params);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+    public function showEditForm(int $expenseId): void {
+    try {
+        $userId = $this->getAuthenticatedUserId();
+        $expense = $this->db->fetchOne(
+            "SELECT * FROM expenses WHERE id = ? AND user_id = ?",
+            [$expenseId, $userId]
+        );
+        
+        if (!$expense) {
+            throw new Exception("Expense not found");
+        }
+
+        $availableFunds = $this->getAvailableFunds($userId);
+        
+        require __DIR__ . '/../views/expenses/edit-expenses.php';
+        
+    } catch (Exception $e) {
+        error_log($e->getMessage());
+        header("Location: /expenses/view?error=not_found");
+        exit();
+    }
 }
 }

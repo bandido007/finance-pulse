@@ -5,9 +5,10 @@
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-    <?php include '../components/navbar.php'; ?>
+
+    <?php include __DIR__ . '/../../components/navbar.php'; ?>
+    <?php include __DIR__ . '/../../components/alert.php'; ?>
     <div class="container">
-        <?php include '../components/alert.php'; ?>
         <h1>Edit Expense</h1>
         <?php 
         $validCategories = [
@@ -18,6 +19,7 @@
             'Education', 'Work Expenses'
         ];
         ?>
+        
         <form method="POST" action="/expenses/update">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
             <input type="hidden" name="expense_id" value="<?= htmlspecialchars($expense['id']) ?>">
