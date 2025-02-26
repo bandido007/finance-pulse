@@ -99,6 +99,20 @@ switch ($request) {
         $controller = new FundController(new Database());
         $controller->updateFund();
         break;
+
+        // Expenses Delete
+    case '/expenses/delete':
+        require_once __DIR__ . '/../controllers/ExpenseController.php';
+        $controller = new ExpenseController(new Database());
+        $controller->deleteExpense();
+        break;
+    
+    // Funds Delete
+    case '/funds/delete':
+        require_once __DIR__ . '/../controllers/FundController.php';
+        $controller = new FundController(new Database());
+        $controller->deleteFund();
+        break;
     
     case '/logout':
         session_unset();

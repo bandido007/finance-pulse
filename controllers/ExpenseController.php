@@ -393,4 +393,50 @@ class ExpenseController {
         exit();
     }
 }
+
+    public function deleteExpense(): void {
+    try {
+        $this->validateCsrfToken();
+        $userId = $this->getAuthenticatedUserId();
+        $expenseId = (int)($_POST['expense_id'] ?? 0);
+
+        // Get expense details first
+        $expense = $this->db->fetchOne(
+            "SELECT * FROM expenses WHERE id = ? AND user_id = ?",
+            [$expenseId, $userId]
+        );
+
+        if (!$expense) {
+            throw new InvalidArgumentException("Expense not found");
+        }
+
+        $this->db->beginTransaction();
+
+        // Update fund balance if expense had a fund
+        if ($expense['fund_id']) {
+            $this->db->execute(
+                "UPDATE funds SET amount = amount + ? 
+                WHERE id = ? AND user_id = ?",
+                [
+                    $expense['amount'],
+                    $expense['fund_id'],
+                    $userId
+                ]
+            );
+        }
+
+        // Delete the expense
+        $this->db->execute(
+            "DELETE FROM expenses WHERE id = ? AND user_id = ?",
+            [$expenseId, $userId]
+        );
+
+        $this->db->commit();
+        $this->redirectWithSuccess('/expenses/view', 'Expense deleted successfully!');
+
+    } catch (Exception $e) {
+        $this->db->rollBack();
+        $this->handleUserError($e->getMessage());
+    }
+}
 }

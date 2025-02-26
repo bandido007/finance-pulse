@@ -46,6 +46,17 @@
                         <a href="/funds/details?id=<?= $fund['id'] ?>" class="btn-details">View Details</a>
                         <a href="/funds/edit?id=<?= $fund['id'] ?>" class="btn-edit">Edit</a>
                     </div>
+                    
+                    <div class="fund-actions">
+                        <form action="/funds/delete" method="POST">
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+                            <input type="hidden" name="fund_id" value="<?= $fund['id'] ?>">
+                            <button type="submit" class="btn-delete" 
+                                    onclick="return confirm('Delete this fund and ALL associated expenses?')">
+                                Delete Fund
+                            </button>
+                        </form>
+                    </div>
                 </div>
             <?php endforeach; ?>
         </div>
