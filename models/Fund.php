@@ -2,6 +2,7 @@
 require_once 'Database.php';
 
 class Fund {
+    // TODO 5: This class is responsible for handling fund data or manipulating it, it should not be responsible for handling the connection.
     private $db;
 
     public function __construct(Database $database) {
@@ -10,7 +11,7 @@ class Fund {
 
     // Create new fund
     public function createFund(int $userId, array $data): bool {
-        $query = "INSERT INTO funds (user_id, type, source, amount, description, created_at) 
+        $query = "INSERT INTO funds (user_id, type, source, amount, description, created_at)
                   VALUES (:user_id, :type, :source, :amount, :description, NOW())";
         $statement = $this->db->prepare($query);
         return $statement->execute([
@@ -25,7 +26,7 @@ class Fund {
     // get funds
 
     public function getFunds(int $userId): array {
-        $query = "SELECT 
+        $query = "SELECT
             f.id,
             f.source,
             f.type,
@@ -39,7 +40,7 @@ class Fund {
         WHERE f.user_id = :user_id
         GROUP BY f.id, f.source, f.type, f.amount, f.description, f.created_at
         ORDER BY f.created_at DESC";
-        
+
         $statement = $this->db->prepare($query);
         $statement->execute([':user_id' => $userId]);
         return $statement->fetchAll(PDO::FETCH_ASSOC);
@@ -47,7 +48,7 @@ class Fund {
 
     // Get single fund details
     public function getFundDetails(int $userId, int $fundId): ?array {
-        $query = "SELECT 
+        $query = "SELECT
             f.*,
             f.amount - COALESCE(SUM(e.amount), 0) as remaining,
             COALESCE(SUM(e.amount), 0) as spent
@@ -55,7 +56,7 @@ class Fund {
         LEFT JOIN expenses e ON f.id = e.fund_id
         WHERE f.id = :id AND f.user_id = :user_id
         GROUP BY f.id";
-        
+
         $statement = $this->db->prepare($query);
         $statement->execute([':id' => $fundId, ':user_id' => $userId]);
         return $statement->fetch(PDO::FETCH_ASSOC) ?: null;
@@ -64,7 +65,7 @@ class Fund {
 
     // Update existing fund (only one instance)
     public function updateFund(int $userId, int $fundId, array $data): bool {
-        $query = "UPDATE funds SET 
+        $query = "UPDATE funds SET
             type = :type,
             source = :source,
             amount = :amount,
@@ -72,7 +73,7 @@ class Fund {
             updated_at = NOW()
             WHERE id = :id
             AND user_id = :user_id"; // Add user_id check
-    
+
         $statement = $this->db->prepare($query);
         return $statement->execute([
             ':type' => $data['type'],
