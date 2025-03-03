@@ -61,6 +61,17 @@ error_log("View received grandTotal: " . ($grandTotal ?? 'not set'));
                         <td>
                             <a href="/expenses/edit?id=<?= $expenseId ?>" class="btn-edit">Edit</a>
                         </td>
+                        
+                        <td>
+                            <form action="/expenses/delete" method="POST">
+                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+                                <input type="hidden" name="expense_id" value="<?= $expense['id'] ?>">
+                                <button type="submit" class="btn-delete" 
+                                        onclick="return confirm('Are you sure you want to delete this expense?')">
+                                    Delete
+                                </button>
+                            </form>
+                        </td>
                     </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>

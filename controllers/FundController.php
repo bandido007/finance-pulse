@@ -124,4 +124,35 @@ class FundController {
         }
         exit();
     }
+
+    public function deleteFund(): void {
+    try {
+        $this->validateCsrfToken();
+        $userId = $this->getAuthenticatedUserId();
+        $fundId = (int)($_POST['fund_id'] ?? 0);
+
+        $this->db->beginTransaction();
+
+        // Delete associated expenses first
+        $this->db->execute(
+            "DELETE FROM expenses 
+            WHERE fund_id = ? AND user_id = ?",
+            [$fundId, $userId]
+        );
+
+        // Delete the fund
+        $this->db->execute(
+            "DELETE FROM funds 
+            WHERE id = ? AND user_id = ?",
+            [$fundId, $userId]
+        );
+
+        $this->db->commit();
+        $this->redirectWithSuccess('/funds/view', 'Fund and associated expenses deleted!');
+
+    } catch (Exception $e) {
+        $this->db->rollBack();
+        $this->handleUserError($e->getMessage());
+    }
+}
 }
