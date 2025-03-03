@@ -1,5 +1,9 @@
 <?php
 class User {
+    /*
+    TODO 3: User is a model/ entity in the application, it should not be responsible for handling the connection.
+    It should only be responsible for handling user data.
+    */
     private $conn;
 
     public function __construct($db) {
@@ -32,10 +36,10 @@ class User {
             return $user;
         }
         return false;
-
+        // TODO 4: I suspect  this is a dead code  as it won't be executed after function has returned.
         if (session_status() == PHP_SESSION_NONE) {
-    session_start();
-}
+          session_start();
+        }
 
     }
 }
